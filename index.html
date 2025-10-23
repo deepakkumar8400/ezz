@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Translation System - Backend Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border: #334155;
+            --success: #22c55e;
+            --warning: #eab308;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 40px 0;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 40px;
+            border-radius: 12px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: var(--bg-hover);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .nav-tab:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .nav-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h3 {
+            color: var(--secondary);
+            margin: 20px 0 15px 0;
+            font-size: 1.4em;
+        }
+
+        .card h4 {
+            color: var(--accent);
+            margin: 15px 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .architecture-diagram {
+            background: #0a0f1e;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+        }
+
+        .architecture-diagram pre {
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.4;
+            white-space: pre;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: var(--bg-hover);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .metric-card {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .metric-item {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: white;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .code-block {
+            background: #0a0f1e;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 15px 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        .code-block code {
+            color: #8b9dc3;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .highlight {
+            background: rgba(37, 99, 235, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .success-badge {
+            background: var(--success);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .warning-badge {
+            background: var(--warning);
+            color: #0f172a;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .info-box {
+            background: rgba(37, 99, 235, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .cost-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .cost-item {
+            background: var(--bg-hover);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+        }
+
+        .cost-title {
+            color: var(--accent);
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .cost-value {
+            font-size: 2em;
+            color: var(--secondary);
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .list-styled {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .list-styled li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .list-styled li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            margin-top: 60px;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .badge-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .tech-badge {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            border: 1px solid var(--border);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .metric-card {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 Machine Translation System</h1>
+            <p>Complete Backend Design & Implementation</p>
+            <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.8;">EZ Works Backend Engineer Assignment</p>
+        </header>
+
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showTab('overview')">📋 Overview</div>
+            <div class="nav-tab" onclick="showTab('architecture')">🏗️ Architecture</div>
+            <div class="nav-tab" onclick="showTab('scalability')">📈 Scalability</div>
+            <div class="nav-tab" onclick="showTab('performance')">⚡ Performance</div>
+            <div class="nav-tab" onclick="showTab('api')">🔌 API Design</div>
+            <div class="nav-tab" onclick="showTab('database')">💾 Database</div>
+            <div class="nav-tab" onclick="showTab('cost')">💰 Cost Analysis</div>
+            <div class="nav-tab" onclick="showTab('monitoring')">📊 Monitoring</div>
+        </div>
+
+        <div id="overview" class="tab-content active">
+            <div class="card">
+                <h2>🎯 System Overview</h2>
+                <p>A production-ready, scalable machine translation system designed to handle high-throughput translation workloads with intelligent resource management and cost optimization.</p>
+                
+                <div class="metric-card">
+                    <div class="metric-item">
+                        <div class="metric-label">Throughput</div>
+                        <div class="metric-value">1,500+</div>
+                        <div class="metric-label">Words/Minute</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Large Document</div>
+                        <div class="metric-value">&lt;12</div>
+                        <div class="metric-label">Minutes (15K words)</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Cost Efficiency</div>
+                        <div class="metric-value">$0.27</div>
+                        <div class="metric-label">Per 1K Words</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Idle Savings</div>
+                        <div class="metric-value">85%</div>
+                        <div class="metric-label">Cost Reduction</div>
+                    </div>
+                </div>
+
+                <h3>✅ Key Features</h3>
+                <div class="badge-container">
+                    <span class="success-badge">Auto-Scaling</span>
+                    <span class="success-badge">Priority Queues</span>
+                    <span class="success-badge">Intelligent Caching</span>
+                    <span class="success-badge">GPU Optimization</span>
+                    <span class="success-badge">Cost Efficient</span>
+                    <span class="success-badge">High Availability</span>
+                </div>
+
+                <h3>🛠️ Technology Stack</h3>
+                <div class="badge-container">
+                    <span class="tech-badge">🐍 Python/FastAPI</span>
+                    <span class="tech-badge">🤖 Transformers ML</span>
+                    <span class="tech-badge">🐘 PostgreSQL</span>
+                    <span class="tech-badge">🔴 Redis</span>
+                    <span class="tech-badge">🐰 RabbitMQ</span>
+                    <span class="tech-badge">🐳 Docker/K8s</span>
+                    <span class="tech-badge">☁️ AWS</span>
+                    <span class="tech-badge">📊 Prometheus</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🎯 Design Goals Achieved</h2>
+                <ul class="list-styled">
+                    <li><strong>Performance:</strong> Exceeds 1,500 words/minute requirement with room for scaling</li>
+                    <li><strong>Large Documents:</strong> 15,000-word documents processed in 4 minutes (67% faster than required)</li>
+                    <li><strong>Cost Optimization:</strong> Dynamic scaling reduces idle costs by 85%</li>
+                    <li><strong>Scalability:</strong> Auto-scales from 2 to 20+ workers based on load</li>
+                    <li><strong>Reliability:</strong> 99.9% uptime with automated failover</li>
+                    <li><strong>Priority Handling:</strong> 3-tier priority queue with SLA guarantees</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="architecture" class="tab-content">
+            <div class="card">
+                <h2>🏗️ System Architecture</h2>
+                
+                <div class="architecture-diagram">
+                    <pre>
+                        ┌─────────────────┐
+                        │   CloudFlare    │
+                        │   CDN + WAF     │
+                        └────────┬────────┘
+                                 │
+                        ┌────────▼────────┐
+                        │  Load Balancer  │
+                        │   (ALB + NLB)   │
+                        └────────┬────────┘
+                                 │
+            ┌────────────────────┼────────────────────┐
+            │                    │                    │
+       ┌────▼─────┐       ┌─────▼────┐        ┌─────▼────┐
+       │  API     │       │  API     │        │  API     │
+       │ Gateway  │       │ Gateway  │        │ Gateway  │
+       └────┬─────┘       └─────┬────┘        └─────┬────┘
+            │                   │                    │
+            └───────────────────┼────────────────────┘
+                                │
+            ┌───────────────────┼────────────────────┐
+            │                   │                    │
+    ┌───────▼────────┐   ┌─────▼──────┐    ┌───────▼────────┐
+    │  Redis Cache   │   │   RabbitMQ │    │   PostgreSQL   │
+    │   Cluster      │   │Task Queue  │    │   Primary DB   │
+    └───────┬────────┘   └─────┬──────┘    └───────┬────────┘
+            │                   │                    │
+            │            ┌──────▼──────┐            │
+            │            │  Priority   │            │
+            │            │Queue Manager│            │
+            │            └──────┬──────┘            │
+            │                   │                   │
+            │      ┌────────────┼─────────────┐     │
+            │      │            │             │     │
+       ┌────▼──────▼──┐  ┌─────▼─────┐  ┌───▼─────▼────┐
+       │  Translation  │  │Translation│  │  Translation │
+       │  Worker Pool  │  │Worker Pool│  │ Worker Pool  │
+       │  (GPU Tier 1) │  │(GPU Tier2)│  │ (CPU Tier)   │
+       │  p3.2xlarge   │  │ g4dn.xl   │  │ c5.2xlarge   │
+       └───────┬───────┘  └─────┬─────┘  └──────┬───────┘
+               │                │               │
+               └────────────────┼───────────────┘
+                                │
+                       ┌────────▼─────────┐
+                       │    S3 Storage    │
+                       │  (Translated     │
+                       │   Documents)     │
+                       └──────────────────┘
+                    </pre>
+                </div>
+
+                <h3>📦 Core Components</h3>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Technology</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>API Gateway</td>
+                            <td>FastAPI + Uvicorn</td>
+                            <td>Request handling, validation, authentication</td>
+                        </tr>
+                        <tr>
+                            <td>Task Queue</td>
+                            <td>RabbitMQ</td>
+                            <td>Job distribution with priority routing</td>
+                        </tr>
+                        <tr>
+                            <td>Cache Layer</td>
+                            <td>Redis Cluster</td>
+                            <td>Translation caching, rate limiting</td>
+                        </tr>
+                        <tr>
+                            <td>Database</td>
+                            <td>PostgreSQL</td>
+                            <td>Job tracking, user management, analytics</td>
+                        </tr>
+                        <tr>
+                            <td>Workers</td>
+                            <td>Python + PyTorch</td>
+                            <td>ML model inference on GPU/CPU</td>
+                        </tr>
+                        <tr>
+                            <td>Storage</td>
+                            <td>S3</td>
+                            <td>Document storage, model files</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Priority Score Calculation</h3>
+                <div class="info-box">
+                    <strong>Formula:</strong> Base (50) + User Tier (+30) + Urgency (+40) + Document Type (+10) + Retries (+10 each)
+                    <br><br>
+                    <strong>Example:</strong> Enterprise user with 1-hour deadline = 50 + 30 + 40 = 120 → Capped at 100 (Critical)
+                </div>
+            </div>
+        </div>
+
+        <div id="api" class="tab-content">
+            <div class="card">
+                <h2>🔌 API Design</h2>
+                
+                <h3>RESTful Endpoints</h3>
+                
+                <div class="code-block">
+                    <code>
+<strong>POST</strong> /api/v1/translations
+Submit new translation request
+
+Request Body:
+{
+  "source_language": "en",
+  "target_language": "hi",
+  "text": "Hello world",
+  "priority": "STANDARD",
+  "callback_url": "https://client.com/webhook"
+}
+
+Response:
+{
+  "job_id": "trans_20251023_001",
+  "status": "QUEUED",
+  "estimated_completion": "2025-10-23T14:45:00Z",
+  "position_in_queue": 5
+}
+                    </code>
+                </div>
+
+                <div class="code-block">
+                    <code>
+<strong>GET</strong> /api/v1/translations/{job_id}
+Get translation status and result
+
+Response:
+{
+  "job_id": "trans_20251023_001",
+  "status": "COMPLETED",
+  "progress": 100,
+  "result": {
+    "translated_text": "नमस्ते दुनिया",
+    "word_count": 2,
+    "processing_time_ms": 1234,
+    "confidence_score": 0.98
+  }
+}
+                    </code>
+                </div>
+
+                <div class="code-block">
+                    <code>
+<strong>POST</strong> /api/v1/translations/document
+Upload document for translation (PDF, DOCX, TXT)
+
+<strong>GET</strong> /api/v1/translations/{job_id}/download
+Download translated document
+
+<strong>GET</strong> /health
+Health check endpoint
+
+<strong>GET</strong> /metrics
+Prometheus metrics endpoint
+                    </code>
+                </div>
+
+                <h3>🔐 Authentication & Security</h3>
+                <ul class="list-styled">
+                    <li><strong>JWT Tokens:</strong> Bearer token authentication with 24-hour expiry</li>
+                    <li><strong>API Keys:</strong> Unique API key per user for programmatic access</li>
+                    <li><strong>Rate Limiting:</strong> Token bucket algorithm by user tier</li>
+                    <li><strong>Input Validation:</strong> Pydantic schemas with strict validation</li>
+                    <li><strong>SQL Injection Prevention:</strong> Parameterized queries only</li>
+                    <li><strong>TLS/SSL:</strong> All traffic encrypted in transit</li>
+                </ul>
+
+                <h3>📊 Rate Limits by Tier</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tier</th>
+                            <th>Requests/Min</th>
+                            <th>Words/Day</th>
+                            <th>Concurrent Jobs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Free</td>
+                            <td>10</td>
+                            <td>10,000</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td>Premium</td>
+                            <td>100</td>
+                            <td>500,000</td>
+                            <td>20</td>
+                        </tr>
+                        <tr>
+                            <td>Enterprise</td>
+                            <td>1,000</td>
+                            <td>Unlimited</td>
+                            <td>100</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="database" class="tab-content">
+            <div class="card">
+                <h2>💾 Database Design</h2>
+                
+                <h3>PostgreSQL Schema</h3>
+                
+                <div class="code-block">
+                    <code>
+<strong>users</strong> table:
+- user_id (UUID, PK)
+- email (VARCHAR, UNIQUE)
+- tier (VARCHAR) - 'free', 'premium', 'enterprise'
+- api_key (VARCHAR, UNIQUE)
+- created_at, updated_at (TIMESTAMP)
+
+<strong>translation_jobs</strong> table:
+- job_id (VARCHAR, PK)
+- user_id (UUID, FK)
+- source_language, target_language (VARCHAR)
+- source_text, translated_text (TEXT)
+- status (VARCHAR) - 'QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED'
+- priority (INTEGER)
+- priority_tag (VARCHAR)
+- word_count, processing_time_ms (INTEGER)
+- confidence_score (DECIMAL)
+- worker_id (VARCHAR)
+- created_at, started_at, completed_at (TIMESTAMP)
+
+<strong>job_chunks</strong> table:
+- chunk_id (UUID, PK)
+- job_id (VARCHAR, FK)
+- chunk_index (INTEGER)
+- source_text, translated_text (TEXT)
+- status (VARCHAR)
+
+<strong>system_metrics</strong> table:
+- metric_id (BIGSERIAL, PK)
+- timestamp (TIMESTAMP)
+- metric_type, metric_name (VARCHAR)
+- metric_value (DECIMAL)
+- resource_id (VARCHAR)
+- tags (JSONB)
+                    </code>
+                </div>
+
+                <h3>🔍 Optimized Indexes</h3>
+                <div class="info-box">
+                    <ul class="list-styled">
+                        <li><strong>Priority Index:</strong> (status, priority DESC, created_at ASC) for fast queue retrieval</li>
+                        <li><strong>User Index:</strong> (user_id, created_at DESC) for user history queries</li>
+                        <li><strong>Status Index:</strong> (status) for monitoring dashboards</li>
+                        <li><strong>GIN Index:</strong> (tags) on system_metrics for flexible filtering</li>
+                    </ul>
+                </div>
+
+                <h3>🗄️ Redis Cache Patterns</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Key Pattern</th>
+                            <th>Purpose</th>
+                            <th>TTL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>translation:{hash}</td>
+                            <td>Cached translations</td>
+                            <td>7 days</td>
+                        </tr>
+                        <tr>
+                            <td>rate_limit:{user_id}</td>
+                            <td>Rate limiting counter</td>
+                            <td>60 seconds</td>
+                        </tr>
+                        <tr>
+                            <td>job:active:{job_id}</td>
+                            <td>Active job data</td>
+                            <td>24 hours</td>
+                        </tr>
+                        <tr>
+                            <td>session:{user_id}</td>
+                            <td>User session data</td>
+                            <td>30 minutes</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Expected Cache Performance</h3>
+                <div class="metric-card">
+                    <div class="metric-item">
+                        <div class="metric-label">Cache Hit Rate</div>
+                        <div class="metric-value">40-50%</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Compute Savings</div>
+                        <div class="metric-value">40%</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Response Time</div>
+                        <div class="metric-value">&lt;50ms</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="cost" class="tab-content">
+            <div class="card">
+                <h2>💰 Cost Analysis</h2>
+                
+                <h3>Cost per 1,000 Words at Different Scales</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Daily Volume</th>
+                            <th>Infrastructure Cost</th>
+                            <th>Cost per 1K Words</th>
+                            <th>Monthly Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>10,000 words</td>
+                            <td>$8.19/day</td>
+                            <td><span class="highlight">$0.82</span></td>
+                            <td>$246</td>
+                        </tr>
+                        <tr>
+                            <td>100,000 words</td>
+                            <td>$38.41/day</td>
+                            <td><span class="highlight">$0.38</span></td>
+                            <td>$1,152</td>
+                        </tr>
+                        <tr>
+                            <td>1,000,000 words</td>
+                            <td>$267.60/day</td>
+                            <td><span class="highlight">$0.27</span></td>
+                            <td>$8,028</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Detailed Cost Breakdown (100K words/day)</h3>
+                <div class="cost-summary">
+                    <div class="cost-item">
+                        <div class="cost-title">Compute (GPU/CPU)</div>
+                        <div class="cost-value">$23.76</div>
+                        <p>5 GPU workers × 8 hours/day</p>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-title">API Gateway</div>
+                        <div class="cost-value">$2.40</div>
+                        <p>5 instances × t3.medium</p>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-title">Database</div>
+                        <div class="cost-value">$3.12</div>
+                        <p>PostgreSQL + Redis</p>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-title">Storage & Transfer</div>
+                        <div class="cost-value">$7.60</div>
+                        <p>S3 + CloudFront + Data Transfer</p>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-title">Load Balancer</div>
+                        <div class="cost-value">$0.67</div>
+                        <p>ALB multi-AZ</p>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-title"><strong>Total Daily</strong></div>
+                        <div class="cost-value">$38.41</div>
+                        <p><strong>Monthly: $1,152</strong></p>
+                    </div>
+                </div>
+
+                <h3>💡 Cost Optimization Strategies</h3>
+                <ul class="list-styled">
+                    <li><strong>Caching:</strong> 40% cache hit rate reduces compute costs by 40%</li>
+                    <li><strong>Spot Instances:</strong> 70% savings during off-peak hours</li>
+                    <li><strong>Reserved Instances:</strong> 30% savings with 1-year commitment</li>
+                    <li><strong>Intelligent Tiering:</strong> S3 storage costs reduced by 15%</li>
+                    <li><strong>Auto-Scaling:</strong> 85% cost reduction during idle periods</li>
+                    <li><strong>Right-Sizing:</strong> CPU instances for small jobs save 80% vs GPU</li>
+                </ul>
+
+                <h3>📊 Break-Even Analysis</h3>
+                <div class="info-box">
+                    <strong>Fixed Costs:</strong> $150/month (minimum infrastructure)<br>
+                    <strong>Variable Cost:</strong> $0.15 per 1K words<br><br>
+                    <strong>Revenue Model:</strong><br>
+                    • Premium: $0.50 per 1K words<br>
+                    • Enterprise: $0.30 per 1K words (volume discount)<br><br>
+                    <strong>Break-Even:</strong> 500,000 words/month<br>
+                    <strong>Profitable at:</strong> 1M+ words/month
+                </div>
+            </div>
+        </div>
+
+        <div id="monitoring" class="tab-content">
+            <div class="card">
+                <h2>📊 Monitoring & Observability</h2>
+                
+                <h3>Monitoring Stack</h3>
+                <div class="badge-container">
+                    <span class="tech-badge">📈 Prometheus</span>
+                    <span class="tech-badge">📊 Grafana</span>
+                    <span class="tech-badge">🔍 ELK Stack</span>
+                    <span class="tech-badge">🔗 Jaeger</span>
+                    <span class="tech-badge">🚨 PagerDuty</span>
+                </div>
+
+                <h3>Key Metrics Tracked</h3>
+                
+                <h4>System Health Metrics</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Target</th>
+                            <th>Alert Threshold</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>API Response Time (p95)</td>
+                            <td>&lt; 500ms</td>
+                            <td>&gt; 2000ms</td>
+                        </tr>
+                        <tr>
+                            <td>Error Rate</td>
+                            <td>&lt; 0.1%</td>
+                            <td>&gt; 5%</td>
+                        </tr>
+                        <tr>
+                            <td>Service Availability</td>
+                            <td>99.9%</td>
+                            <td>&lt; 99.5%</td>
+                        </tr>
+                        <tr>
+                            <td>Queue Depth</td>
+                            <td>&lt; 50 jobs</td>
+                            <td>&gt; 200 jobs</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>Resource Utilization</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Resource</th>
+                            <th>Normal Range</th>
+                            <th>Action Required</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GPU Utilization</td>
+                            <td>60-80%</td>
+                            <td>&gt; 90% for 5 min → Scale up</td>
+                        </tr>
+                        <tr>
+                            <td>GPU Memory</td>
+                            <td>&lt; 80%</td>
+                            <td>&gt; 90% → Alert + scale</td>
+                        </tr>
+                        <tr>
+                            <td>CPU Utilization</td>
+                            <td>50-70%</td>
+                            <td>&gt; 85% → Scale up</td>
+                        </tr>
+                        <tr>
+                            <td>Database Connections</td>
+                            <td>&lt; 80/100</td>
+                            <td>&gt; 95 → Increase pool</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>🚨 Alert Configuration</h3>
+                <div class="info-box">
+                    <strong>Critical Alerts (PagerDuty):</strong>
+                    <ul class="list-styled">
+                        <li>Service down for > 1 minute</li>
+                        <li>Error rate > 5% for 1 minute</li>
+                        <li>Queue backlog > 500 jobs</li>
+                        <li>Database connection failures</li>
+                    </ul>
+                    
+                    <strong>Warning Alerts (Slack):</strong>
+                    <ul class="list-styled">
+                        <li>GPU utilization > 90% for 5 minutes</li>
+                        <li>Response time p95 > 2 seconds</li>
+                        <li>Hourly cost > $50</li>
+                        <li>Cache hit rate < 20%</li>
+                    </ul>
+                </div>
+
+                <h3>📈 Sample Grafana Dashboards</h3>
+                <div class="metric-card">
+                    <div class="metric-item">
+                        <div class="metric-label">Request Rate</div>
+                        <div class="metric-value">847</div>
+                        <div class="metric-label">req/min</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Throughput</div>
+                        <div class="metric-value">6,234</div>
+                        <div class="metric-label">words/min</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Active Workers</div>
+                        <div class="metric-value">8</div>
+                        <div class="metric-label">GPU instances</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Avg Latency</div>
+                        <div class="metric-value">420ms</div>
+                        <div class="metric-label">p95</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🔄 Deployment & CI/CD</h2>
+                
+                <h3>Deployment Strategy</h3>
+                <ul class="list-styled">
+                    <li><strong>Containerization:</strong> Docker with multi-stage builds</li>
+                    <li><strong>Orchestration:</strong> Kubernetes with auto-scaling</li>
+                    <li><strong>Blue-Green Deployment:</strong> Zero-downtime updates</li>
+                    <li><strong>Canary Releases:</strong> Gradual rollout with 5% traffic test</li>
+                    <li><strong>Rollback:</strong> Automated rollback on error rate spike</li>
+                </ul>
+
+                <h3>Infrastructure as Code</h3>
+                <div class="badge-container">
+                    <span class="tech-badge">Terraform</span>
+                    <span class="tech-badge">AWS CloudFormation</span>
+                    <span class="tech-badge">Kubernetes YAML</span>
+                    <span class="tech-badge">Docker Compose</span>
+                </div>
+
+                <h3>CI/CD Pipeline</h3>
+                <div class="info-box">
+                    <strong>Pipeline Stages:</strong><br>
+                    1. <strong>Build:</strong> Compile code, run unit tests<br>
+                    2. <strong>Test:</strong> Integration tests, load tests<br>
+                    3. <strong>Security Scan:</strong> Dependency check, vulnerability scan<br>
+                    4. <strong>Build Image:</strong> Create Docker image<br>
+                    5. <strong>Push Registry:</strong> Upload to ECR<br>
+                    6. <strong>Deploy Staging:</strong> Deploy to staging environment<br>
+                    7. <strong>Smoke Tests:</strong> Automated validation<br>
+                    8. <strong>Deploy Production:</strong> Blue-green deployment<br>
+                    9. <strong>Monitor:</strong> Watch metrics for 15 minutes<br>
+                    10. <strong>Auto-Rollback:</strong> If error rate > 1%
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <h3>✅ Design Summary</h3>
+            <div class="badge-container" style="justify-content: center; margin: 20px 0;">
+                <span class="success-badge">Production-Ready</span>
+                <span class="success-badge">Highly Scalable</span>
+                <span class="success-badge">Cost-Optimized</span>
+                <span class="success-badge">99.9% Uptime</span>
+                <span class="success-badge">Full Monitoring</span>
+                <span class="success-badge">Security Hardened</span>
+            </div>
+            <p style="margin-top: 20px; font-size: 0.9em;">
+                <strong>Document Version:</strong> 1.0 | 
+                <strong>Last Updated:</strong> October 23, 2025 | 
+                <strong>Status:</strong> Complete & Ready for Implementation
+            </p>
+            <p style="margin-top: 10px; color: var(--text-secondary);">
+                Candidate Solution for <strong>EZ Works Backend Engineer Position</strong>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Remove active class from all nav tabs
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked nav tab
+            event.target.classList.add('active');
+            
+            // Scroll to top smoothly
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html></table>
+            </div>
+
+            <div class="card">
+                <h2>🔄 Request Processing Flow</h2>
+                <div class="info-box">
+                    <strong>Flow:</strong> User Request → Load Balancer → API Gateway → Cache Check → Priority Queue → Worker Pool → ML Translation → Result Storage → Response/Callback
+                </div>
+                
+                <h3>Request Journey (Step-by-Step)</h3>
+                <ol class="list-styled">
+                    <li>Client sends translation request via REST API</li>
+                    <li>Load balancer distributes to available API gateway</li>
+                    <li>Authentication & rate limiting checks performed</li>
+                    <li>Redis cache checked for existing translation</li>
+                    <li>If cache miss, job created in PostgreSQL</li>
+                    <li>Job added to priority queue based on urgency</li>
+                    <li>Worker picks job from highest priority queue</li>
+                    <li>ML model performs translation on GPU/CPU</li>
+                    <li>Result saved to database and cached in Redis</li>
+                    <li>Callback sent to client (if provided)</li>
+                </ol>
+            </div>
+        </div>
+
+        <div id="scalability" class="tab-content">
+            <div class="card">
+                <h2>📈 Scalability Design</h2>
+                
+                <h3>Horizontal Scaling Strategy</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Load Level</th>
+                            <th>Request Rate</th>
+                            <th>API Instances</th>
+                            <th>GPU Workers</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Low</td>
+                            <td>0-1,000 req/min</td>
+                            <td>3</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td>Medium</td>
+                            <td>1,000-5,000 req/min</td>
+                            <td>6</td>
+                            <td>5</td>
+                        </tr>
+                        <tr>
+                            <td>High</td>
+                            <td>5,000-10,000 req/min</td>
+                            <td>12</td>
+                            <td>10</td>
+                        </tr>
+                        <tr>
+                            <td>Peak</td>
+                            <td>10,000+ req/min</td>
+                            <td>20</td>
+                            <td>20</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>⚙️ Auto-Scaling Triggers</h3>
+                <div class="info-box">
+                    <ul class="list-styled">
+                        <li><strong>Scale Up:</strong> CPU > 70% for 2 minutes OR Queue Length > 100</li>
+                        <li><strong>Scale Down:</strong> CPU < 30% for 5 minutes AND Queue Length < 20</li>
+                        <li><strong>Emergency:</strong> Queue > 500 → Immediate scale up to max</li>
+                    </ul>
+                </div>
+
+                <h3>💡 Idle Period Optimization</h3>
+                <div class="cost-summary">
+                    <div class="cost-item">
+                        <div class="cost-title">Active Hours (Peak)</div>
+                        <div class="cost-value">$30/hr</div>
+                        <p>5-10 GPU workers + full API cluster</p>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-title">Idle Hours (Off-Peak)</div>
+                        <div class="cost-value">$1.50/hr</div>
+                        <p>1 spot instance + minimal API</p>
+                    </div>
+                    <div class="cost-item">
+                        <div class="cost-title">Cost Savings</div>
+                        <div class="cost-value">85%</div>
+                        <p>During off-peak hours (10 PM - 8 AM)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🎯 GPU/CPU Allocation Strategy</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tier</th>
+                            <th>Instance Type</th>
+                            <th>GPU</th>
+                            <th>Use Case</th>
+                            <th>Cost/Hour</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>High Priority</td>
+                            <td>p3.2xlarge</td>
+                            <td>V100 (16GB)</td>
+                            <td>Large docs, urgent requests</td>
+                            <td>$3.06</td>
+                        </tr>
+                        <tr>
+                            <td>Standard</td>
+                            <td>g4dn.xlarge</td>
+                            <td>T4 (16GB)</td>
+                            <td>Regular translations</td>
+                            <td>$0.526</td>
+                        </tr>
+                        <tr>
+                            <td>Low Priority</td>
+                            <td>c5.2xlarge</td>
+                            <td>CPU only</td>
+                            <td>Small translations</td>
+                            <td>$0.34</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="info-box">
+                    <strong>Smart Routing:</strong> Jobs automatically routed to appropriate compute tier based on priority, size, and current system load
+                </div>
+            </div>
+        </div>
+
+        <div id="performance" class="tab-content">
+            <div class="card">
+                <h2>⚡ Performance Optimization</h2>
+                
+                <h3>Meeting Target: 1,500 Words/Minute</h3>
+                <div class="metric-card">
+                    <div class="metric-item">
+                        <div class="metric-label">Single Worker</div>
+                        <div class="metric-value">25</div>
+                        <div class="metric-label">Words/Second</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Per Minute</div>
+                        <div class="metric-value">1,500</div>
+                        <div class="metric-label">Words/Worker</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">4 Workers</div>
+                        <div class="metric-value">6,000</div>
+                        <div class="metric-label">Words/Minute</div>
+                    </div>
+                </div>
+
+                <h3>15,000-Word Document Processing</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Stage</th>
+                            <th>Duration</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Document Splitting</td>
+                            <td>10s</td>
+                            <td>Split into 30 chunks × 500 words</td>
+                        </tr>
+                        <tr>
+                            <td>Parallel Processing</td>
+                            <td>2.5 min</td>
+                            <td>4 GPU workers @ 1,500 words/min each</td>
+                        </tr>
+                        <tr>
+                            <td>Assembly & QA</td>
+                            <td>30s</td>
+                            <td>Merge chunks, quality checks</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Time</strong></td>
+                            <td><strong>~4 min</strong></td>
+                            <td><strong>67% faster than 12-min requirement</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>🚀 Optimization Techniques</h3>
+                <ul class="list-styled">
+                    <li><strong>Model Quantization:</strong> INT8 quantization reduces model size by 60% and doubles inference speed</li>
+                    <li><strong>Batch Processing:</strong> Process 32 sentences simultaneously for 3x throughput improvement</li>
+                    <li><strong>ONNX Runtime:</strong> Optimized model format reduces inference time by 30-40%</li>
+                    <li><strong>Redis Caching:</strong> 40-50% cache hit rate eliminates redundant computations</li>
+                    <li><strong>Connection Pooling:</strong> Database connection reuse reduces latency by 200ms</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>🎯 Priority Queue System</h2>
+                
+                <h3>3-Tier Priority Levels</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Priority</th>
+                            <th>SLA</th>
+                            <th>Use Case</th>
+                            <th>Score Range</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🔴 Critical (P0)</td>
+                            <td>30 seconds</td>
+                            <td>Enterprise urgent, contract translations</td>
+                            <td>90-100</td>
+                        </tr>
+                        <tr>
+                            <td>🟡 High (P1)</td>
+                            <td>2 minutes</td>
+                            <td>Premium users, time-sensitive docs</td>
+                            <td>70-89</td>
+                        </tr>
+                        <tr>
+                            <td>🟢 Standard (P2)</td>
+                            <td>10 minutes</td>
+                            <td>Regular users, non-urgent</td>
+                            <td>0-69</td>
+                        </tr>
+                    </tbody>
